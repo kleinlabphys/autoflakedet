@@ -15,3 +15,9 @@ See [workspace](workspace) for example scripts and procedures
 
 - Reference the notebook `polygons2rle-coco.ipynb` to perform the conversion seemlessly
 - Dependency errors can be resolved with `pip install numpy pycocotools labelme` (in other words install the missing libraries)
+
+## Running Finetuning
+
+- Example: 
+
+`python.exe .\workspace\maskterial_repo\train_AMM_head.py --config .\workspace\maskterial_repo\configs\AMM\default_config.json --train-image-dir graphene_20x_samples --train-annotation-path workspace\RLE_annotations_graphene.json --save-dir workspace\models\finetuned_amm_model --train-seed 42`
