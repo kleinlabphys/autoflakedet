@@ -1,6 +1,8 @@
 # modules for stage control
 from ctypes import WinDLL, create_string_buffer
-import os
+import os, time
+
+from PriorCleanup import PriorCleanup
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,7 +47,7 @@ class PriorControl:
         else:
             return cmd_status, self.output_buffer.value.decode()
         
-    def connect_to_device(self, port_number):
+    def connect_to_device(self, port_number='4'):
         # Ensure connection to Stage control device is solid first
         self.send_prior_cmd("dll.apitest 33 goodresponse", flush_immediately=True, expected_status=33)
         self.send_prior_cmd("dll.apitest -300 stillgoodresponse", flush_immediately=True, expected_status=-300)
@@ -53,8 +55,11 @@ class PriorControl:
         # Connect to prior device over usb TODO: add retry logic
         self.send_prior_cmd(f"controller.connect {port_number}", flush_immediately=True, log_level=logging.INFO)
 
-    def disconnect_and_close_session(self):
-        self.send_prior_cmd("controller.disconnect", flush_immediately=True)
+    def disconnect_and_close_session(self, port_num):
+        self.send_prior_cmd("controller.disconnect", flush_immediately=True, log_level=logging.INFO)
         ses_close_status = self.SDKPrior.PriorScientificSDK_CloseSession(self.sessionID)
         if ses_close_status:
             logger.error("Encountered a problem with closing PriorSDK session")
+        
+        # Hack to restore Prior control for NIS elements
+        PriorCleanup.run_prior_test_cleanup(port_num)
