@@ -53,3 +53,8 @@ class PriorControl:
         # Connect to prior device over usb TODO: add retry logic
         self.send_prior_cmd(f"controller.connect {port_number}", flush_immediately=True, log_level=logging.INFO)
 
+    def disconnect_and_close_session(self):
+        self.send_prior_cmd("controller.disconnect", flush_immediately=True)
+        ses_close_status = self.SDKPrior.PriorScientificSDK_CloseSession(self.sessionID)
+        if ses_close_status:
+            logger.error("Encountered a problem with closing PriorSDK session")

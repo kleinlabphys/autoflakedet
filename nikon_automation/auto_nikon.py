@@ -17,6 +17,9 @@ def main():
     # Run automation
     automator.calibrate_plane()
     automator.run_scan()
+
+    # Shutdown
+    automator.platformOperator.disconnect_and_close_session()
     
 
 # --- EXECUTION ---
