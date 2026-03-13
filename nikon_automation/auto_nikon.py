@@ -19,11 +19,12 @@ def main():
     automator.run_scan()
 
     # Shutdown
-    automator.platformOperator.disconnect_and_close_session()
+    automator.platformOperator.disconnect_and_close_session(COM_PORT)
     
 
 # --- EXECUTION ---
 if __name__ == "__main__":
     main()
+    logger.info("Automation Complete :)")
 
 
