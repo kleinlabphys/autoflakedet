@@ -25,7 +25,7 @@ class PlatformOperator(PriorControl):
         return (x, y, z)
 
     # Not ideal but does the job for a synchronous program
-    @wait_until_ready
+    @wait_until_ready()
     def wait_for_platform(self, targetPosition):
         xy_status, _ = self.send_prior_cmd("controller.stage.busy.get", expected_status=[0, 1, 2, 3])
         z_status, _ = self.send_prior_cmd("controller.z.busy.get", expected_status=[0, 4])
