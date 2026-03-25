@@ -42,8 +42,10 @@ class PriorControl:
 
         if type(expected_status) == int and cmd_status != expected_status or type(expected_status) == list and cmd_status not in expected_status:
             logger.error(f"Error executing {cmd_str} with status code: {cmd_status}. Expected {expected_status}")
+            return False
         elif flush_immediately:
             logger.log(log_level, f"Executed '{cmd_str}' OK. Recieved data: {self.output_buffer.value.decode()}")
+            return True
         else:
             return cmd_status, self.output_buffer.value.decode()
         
@@ -53,7 +55,8 @@ class PriorControl:
         self.send_prior_cmd("dll.apitest -300 stillgoodresponse", flush_immediately=True, expected_status=-300)
 
         # Connect to prior device over usb TODO: add retry logic
-        self.send_prior_cmd(f"controller.connect {port_number}", flush_immediately=True, log_level=logging.INFO)
+        connect_result = self.send_prior_cmd(f"controller.connect {port_number}", flush_immediately=True, log_level=logging.INFO)
+        return connect_result
 
     def disconnect_and_close_session(self, port_num):
         self.send_prior_cmd("controller.disconnect", flush_immediately=True, log_level=logging.INFO)
