@@ -7,6 +7,7 @@ import time
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 from pathlib import Path
+from pipeline_gui_application import polygons_to_rle_coco as ptrc
 
 
 # Default target directory (where image library gets copied to)
@@ -14,6 +15,8 @@ PARENT_DIR = Path(__file__).resolve().parent
 LIBRARY_COPY_DIR = os.path.join(PARENT_DIR, "library_to_train_on")
 DEFAULT_MODEL_DIR = os.path.join(PARENT_DIR, "trained_models")
 ANNOTATIONS_DIR = os.path.join(PARENT_DIR, "manual_label_annotations")
+RAM_DIR = os.path.join(PARENT_DIR, "intermittent_storage")
+TRAINABLE_ANNOTATIONS_FILE = "coco.json"
 
 class App:
     def __init__(self, root):
@@ -226,7 +229,11 @@ class App:
             return
 
         self.btn_annotations.config(state='disabled', text="Annotations Confirmed ✓")
-        self.log_message("Annotations confirmed.")
+        self.log_message("Annotations confirmed. Converting annotations from each image to a trainable format...")
+        for img_ref, prog_status in ptrc.create_bulk_coco_annotations_from_polygon_images(ANNOTATIONS_DIR, os.path.join(RAM_DIR, TRAINABLE_ANNOTATIONS_FILE)):
+            if prog_status < 100: self.log_message(f"Transposed annotations of {img_ref}")
+            self.progress['value'] = prog_status
+        self.log_message("Formatting complete.")
         self.status_label.config(text="Step 3: Select model save location")
         self.btn_model.config(state='normal')
 
