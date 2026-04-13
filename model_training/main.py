@@ -13,7 +13,7 @@ from pathlib import Path
 PARENT_DIR = Path(__file__).resolve().parent
 LIBRARY_COPY_DIR = os.path.join(PARENT_DIR, "library_to_train_on")
 DEFAULT_MODEL_DIR = os.path.join(PARENT_DIR, "trained_models")
-
+ANNOTATIONS_DIR = os.path.join(PARENT_DIR, "manual_label_annotations")
 
 class App:
     def __init__(self, root):
@@ -25,7 +25,7 @@ class App:
         self.model_dir = DEFAULT_MODEL_DIR
 
         # Status label
-        self.status_label = tk.Label(root, text="Step 1: Select source directory")
+        self.status_label = tk.Label(root, text="Step 1: Select source directory for copying training images")
         self.status_label.pack(pady=5)
 
         # Progress bar
@@ -37,13 +37,17 @@ class App:
         self.log.pack(pady=10, fill='both', expand=True)
 
         # Buttons
-        self.btn_select = tk.Button(root, text="Select Source Directory", command=self.select_directory)
+        self.btn_row_1 = tk.Frame(self.root)
+        self.btn_select = tk.Button(self.btn_row_1, text="Select Source Directory", command=self.select_directory)
+        self.btn_skip = tk.Button(self.btn_row_1, text="Skip Source Selection", command=self.skip_source_selection)
         self.btn_annotations = tk.Button(root, text="Confirm Annotations", command=self.ask_annotations, state='disabled')
         self.btn_model = tk.Button(root, text="Select Model Save Location", command=self.select_model_dir, state='disabled')
         self.btn_train = tk.Button(root, text="Train Model", command=self.train_model, state='disabled')
         self.btn_reset = tk.Button(root, text="Restart Program", command=self.hard_reset, state='normal')
 
-        self.btn_select.pack(pady=5, fill='x', padx=50)
+        self.btn_row_1.pack(pady=5, fill='x', padx=50)
+        self.btn_skip.pack(side='right', expand=True, pady=5, fill='x', padx=50)
+        self.btn_select.pack(side='left', expand=True, pady=5, fill='x', padx=50)
         self.btn_annotations.pack(pady=5, fill='x', padx=50)
         self.btn_model.pack(pady=5, fill='x', padx=50)
         self.btn_train.pack(pady=5, fill='x', padx=50)
@@ -63,6 +67,73 @@ class App:
 
         self.root.deiconify() # now show window
 
+    import tkinter as tk
+
+    def custom_yes_no_cancel(self, title, message,
+                          yes_text="Yes",
+                          no_text="No",
+                          cancel_text="Cancel"):
+
+        win = tk.Toplevel(self.root)
+        win.title(title)
+        win.grab_set()
+        win.resizable(False, False)
+        win.withdraw()
+
+        result = {"value": None}
+
+        # Message
+        tk.Label(win, text=message, padx=20, pady=10).pack()
+
+        # Button actions
+        def yes():
+            result["value"] = True
+            win.destroy()
+
+        def no():
+            result["value"] = False
+            win.destroy()
+
+        def cancel():
+            result["value"] = None
+            win.destroy()
+
+        def close_x():
+            result["value"] = "closed"
+            win.destroy()
+
+        win.protocol("WM_DELETE_WINDOW", close_x)
+
+        # Buttons
+        btn_frame = tk.Frame(win)
+        btn_frame.pack(pady=10, padx=10, fill='x', expand=True)
+
+        tk.Button(btn_frame, text=yes_text, command=yes).pack(side="left", expand=True, fill='x', padx=5)
+        tk.Button(btn_frame, text=no_text, command=no).pack(side="left", expand=True, fill='x', padx=5)
+        tk.Button(btn_frame, text=cancel_text, command=cancel).pack(side="left", expand=True, fill='x', padx=5)
+
+        # ---- CENTER OVER MAIN WINDOW ----
+        win.update_idletasks()
+
+        parent_x = self.root.winfo_rootx()
+        parent_y = self.root.winfo_rooty()
+        parent_w = self.root.winfo_width()
+        parent_h = self.root.winfo_height()
+
+        win_w = win.winfo_reqwidth()
+        win_h = win.winfo_reqheight()
+
+        x = parent_x + (parent_w - win_w) // 2
+        y = parent_y + (parent_h - win_h) // 2
+
+        win.geometry(f"{win_w}x{win_h}+{x}+{y}")
+
+        # Block until closed
+        win.deiconify()
+        win.wait_window()
+
+        return result["value"]
+
     def log_message(self, msg):
         self.log.config(state='normal')
         self.log.insert(tk.END, msg + "\n")
@@ -71,7 +142,6 @@ class App:
         self.root.update_idletasks()
 
     def select_directory(self):
-        self.progress.pack(pady=5, fill='x', padx=20)
         self.source_dir = filedialog.askdirectory(title="Select Source Directory")
         if not self.source_dir:
             self.log_message("No directory selected. Skipping copy step.")
@@ -80,29 +150,39 @@ class App:
 
             self.status_label.config(text="Step 2: Confirm annotations")
             self.btn_annotations.config(state='normal')
-            self.progress.pack_forget()
             return
 
         self.log_message(f"Selected: {self.source_dir}")
         self.status_label.config(text="Copying files...")
         self.btn_select.config(state='disabled')
-        self.progress.pack_forget()
+        self.btn_skip.config(state='disabled')
 
-        threading.Thread(target=self.copy_files).start()
+        threading.Thread(target=self.copy_files, daemon=True).start()
 
-    def copy_files(self):
-        if not os.path.exists(LIBRARY_COPY_DIR):
-            os.makedirs(LIBRARY_COPY_DIR)
+    def skip_source_selection(self):
+        self.log_message("Source selection skipped.")
+        self.source_dir = None  # or a default folder if you want
+        self.status_label.config(text="Step 2: Confirm annotations")
+        self.btn_select.config(state='disabled')
+        self.btn_skip.config(state='disabled')
+        self.btn_annotations.config(state='normal')
 
-        files = os.listdir(self.source_dir)
+    def copy_files(self, src_dir=None, dest_dir=LIBRARY_COPY_DIR, proceed_pipeline=True):
+        self.progress.pack(pady=5, fill='x', padx=20)
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir)
+
+        if src_dir is None:
+            src_dir = self.source_dir
+        files = os.listdir(src_dir)
         total = len(files)
 
         if total == 0:
             self.log_message("No files found to copy.")
         else:
             for i, filename in enumerate(files):
-                src = os.path.join(self.source_dir, filename)
-                dst = os.path.join(LIBRARY_COPY_DIR, filename)
+                src = os.path.join(src_dir, filename)
+                dst = os.path.join(dest_dir, filename)
 
                 if os.path.exists(dst):
                     self.log_message(f"Skipped (already exists): {filename}")
@@ -116,19 +196,35 @@ class App:
                 time.sleep(0.01)  # slight delay so UI updates smoothly
 
         self.log_message("File copy complete.")
+        if not proceed_pipeline: return
+
+        # Done with step 1 if coming from there
         self.status_label.config(text="Step 2: Confirm annotations")
         self.btn_annotations.config(state='normal')
 
     def ask_annotations(self):
-        result = messagebox.askyesno("Annotations", "Have annotations been supplied?")
+        result = self.custom_yes_no_cancel("Annotations", "Have annotations been supplied?", yes_text="Already supplied", no_text="Import Annotations", cancel_text="Launch Labelme")
 
-        if not result:
-            self.log_message("Annotations not provided. Launching labelme...")
+        if result is None:
+            self.log_message("Launching Labelme...")
             self.status_label.config(text="Launching labelme...")
-
             self.root.after(2000, self.launch_labelme)
             return
-        
+        elif result is False:
+            folder = filedialog.askdirectory(title="Select Annotation Folder")
+
+            if folder:
+                self.annotation_folder = folder
+                self.copy_files(folder, ANNOTATIONS_DIR, proceed_pipeline=False)
+                self.log_message(f"Imported annotations from: {folder}")
+
+                self.btn_annotations.config(
+                    state='disabled',
+                    text="Annotations Imported ✓"
+                )
+        elif result == "closed":
+            return
+
         self.btn_annotations.config(state='disabled', text="Annotations Confirmed ✓")
         self.log_message("Annotations confirmed.")
         self.status_label.config(text="Step 3: Select model save location")
@@ -157,14 +253,17 @@ class App:
         self.status_label.config(text="Training model...")
         self.btn_train.config(state='disabled')
 
-        threading.Thread(target=self._train_model_thread).start()
+        threading.Thread(target=self._train_model_thread, daemon=True).start()
 
     def _train_model_thread(self):
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
 
         # Simulated training
-        for i in range(5):
+        iterations = 5
+        for i in range(iterations):
+            progress_value = int((i + 1) / iterations * 100)
+            self.progress['value'] = progress_value
             self.log_message(f"Training step {i+1}/5...")
             time.sleep(1)
 
