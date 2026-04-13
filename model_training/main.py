@@ -7,7 +7,10 @@ import time
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 from pathlib import Path
-from pipeline_gui_application import polygons_to_rle_coco as ptrc
+from pipeline_gui_application import (
+    polygons_to_rle_coco as ptrc, 
+    train_AMM_classifier as trammc
+)
 
 
 # Default target directory (where image library gets copied to)
@@ -17,6 +20,8 @@ DEFAULT_MODEL_DIR = os.path.join(PARENT_DIR, "trained_models")
 ANNOTATIONS_DIR = os.path.join(PARENT_DIR, "manual_label_annotations")
 RAM_DIR = os.path.join(PARENT_DIR, "intermittent_storage")
 TRAINABLE_ANNOTATIONS_FILE = "coco.json"
+
+AMM_CLASSIFIER_CONFIG = os.path.join(PARENT_DIR, "pipeline_gui_application", "train_AMM_classifier_config.json")
 
 class App:
     def __init__(self, root):
@@ -266,6 +271,9 @@ class App:
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
 
+        trammc.train_amm_classifier_model(AMM_CLASSIFIER_CONFIG, LIBRARY_COPY_DIR,
+                                        os.path.join(RAM_DIR, TRAINABLE_ANNOTATIONS_FILE), 
+                                        self.model_dir)
         # Simulated training
         iterations = 5
         for i in range(iterations):
