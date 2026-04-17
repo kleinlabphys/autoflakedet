@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="Shift_JIS" standalone="yes"?>
+<LVSetup>
+  <NOSEPIECE>
+    <ITEM POSITION="1" CODE="156"/>
+    <ITEM POSITION="2" CODE="174"/>
+    <ITEM POSITION="3" CODE="176"/>
+    <ITEM POSITION="4" CODE="180"/>
+    <ITEM POSITION="5" CODE="178"/>
+    <OPTIONAL POSITION="1" CODE="" NAME="EPI 2.5x" SERIES="T Plan" TYPE="" MAG="2.5x" WD="6.50" NA="0.080" DIC=""/>
+    <OPTIONAL POSITION="2" CODE="" NAME="BD 5x" SERIES="TU Plan" TYPE="Fluor" MAG="5x" WD="18.00" NA="0.150" DIC=""/>
+    <OPTIONAL POSITION="3" CODE="" NAME="BD 20x" SERIES="TU Plan" TYPE="Fluor" MAG="20x" WD="4.50" NA="0.450" DIC=""/>
+    <OPTIONAL POSITION="4" CODE="" NAME="BD ELWD 50x" SERIES="TU Plan" TYPE="" MAG="50x" WD="11.00" NA="0.600" DIC=""/>
+    <OPTIONAL POSITION="5" CODE="" NAME="BD 100x" SERIES="TU Plan" TYPE="Fluor" MAG="100x" WD="1.00" NA="0.900" DIC=""/>
+    <SAFETY LOCK="OFF"/>
+  </NOSEPIECE>
+</LVSetup>
