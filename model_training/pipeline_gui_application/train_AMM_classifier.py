@@ -127,10 +127,10 @@ def train_amm_classifier_model(config, train_image_dir, rle_annotation_path, mod
                     test_loss = loss_function(logits, y_test).item()
                 if test_loss < best_loss:
                     best_loss = test_loss
-            print(
-                f"Train Iteration: {iteration:8} Train Loss: {train_loss:10.5f} Test Loss: {test_loss:10.5f} Best Loss: {best_loss:10.5f}",
-                flush=True,
-            )
+            
+            log_string = f"Train Iteration: {iteration:8} Train Loss: {train_loss:10.5f} Test Loss: {test_loss:10.5f} Best Loss: {best_loss:10.5f}"
+            yield log_string, int((iteration + 1) / NUM_ITER * 100)
+            
 
     if TEST_ANNOTATION_PATH is not None:
         model.eval()
@@ -170,3 +170,5 @@ def train_amm_classifier_model(config, train_image_dir, rle_annotation_path, mod
         model.state_dict(),
         os.path.join(model_save_dir, "model.pth"),
     )
+
+    yield "Classifier Training Complete", 100 # Progress complete for classifier training

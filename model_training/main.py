@@ -271,16 +271,12 @@ class App:
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
 
-        trammc.train_amm_classifier_model(AMM_CLASSIFIER_CONFIG, LIBRARY_COPY_DIR,
+        self.log_message("Loading images and applying various settings before classifier training begins...")
+        for training_log_entry, progress_value in trammc.train_amm_classifier_model(AMM_CLASSIFIER_CONFIG, LIBRARY_COPY_DIR,
                                         os.path.join(RAM_DIR, TRAINABLE_ANNOTATIONS_FILE), 
-                                        self.model_dir)
-        # Simulated training
-        iterations = 5
-        for i in range(iterations):
-            progress_value = int((i + 1) / iterations * 100)
+                                        self.model_dir):
             self.progress['value'] = progress_value
-            self.log_message(f"Training step {i+1}/5...")
-            time.sleep(1)
+            self.log_message(training_log_entry)
 
         self.log_message("Training complete. You may close the program now or restart")
         self.status_label.config(text="Done")

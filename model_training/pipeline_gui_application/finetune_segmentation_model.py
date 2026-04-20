@@ -81,3 +81,4 @@ if __name__ == "__main__":
 ## TODO: Need to figure out how to overwrite yaml entries 
 # 1. WEIGHTS
 # 2. NUM_CLASSES
+# 3. OUTPUT_DIR
