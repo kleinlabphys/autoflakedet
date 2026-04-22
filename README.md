@@ -1,7 +1,7 @@
 # autoflakedet
-Automated Flake Detection Module
+Automated Flake Detection Codebase
 
-See [workspace](workspace) for example scripts and procedures
+Full Documentation has moved [here](https://docs.google.com/document/d/1N5IEGf8QIGqM0PZJyFzPuqLQPUqQueSjiCPBYYscdsk/edit?tab=t.0)
 
 ## Launching labelme done via powershell
 
