@@ -111,8 +111,8 @@ class FlakeDetector:
     
 
 # example usage
-seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
-class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
-f = FlakeDetector(seg_dir, class_dir)
-contains = f.scan_image_for_flakes(cv2.imread(r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\library_to_train_on\NPthinBN2-2-A0018_thinBN_1.jpg"), display_success_option=True)
-print(contains)
+# seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
+# class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
+# f = FlakeDetector(seg_dir, class_dir)
+# contains = f.scan_image_for_flakes(cv2.imread(r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\library_to_train_on\NPthinBN2-2-A0018_thinBN_1.jpg"), display_success_option=True)
+# print(contains)
