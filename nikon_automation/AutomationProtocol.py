@@ -118,7 +118,9 @@ class AutomationProtocol:
                     is_flake = self.flakeDetector.scan_image_for_flakes(img_bgr) # TODO: make this call parallel
                     
                     if is_flake:
-                        logger.info(f"Flake locally at {x_cur - x_right},{y_cur - y_bottom}!")
+                        x_proportion = (x_cur - x_right) / (x_left - x_right)
+                        y_proportion = (y_cur - y_bottom) / (y_top - y_bottom)
+                        logger.info(f"Flake locally at {x_proportion * 100}% of the X bounds, {y_proportion * 100}% of the Y bounds!")
 
                     # increment position
                     x_cur += x_fov_step * x_dir
