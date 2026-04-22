@@ -14,7 +14,6 @@ def main():
     automator = AutomationProtocol()
     safe_shutdown = lambda signum, frame : automator.platformOperator.disconnect_and_close_session(COM_PORT)
     signal.signal(signal.SIGINT, safe_shutdown)
-    signal.signal(signal.SIGTERM, safe_shutdown)
 
     connect_result = automator.platformOperator.connect_to_device(COM_PORT)
     if not connect_result:
