@@ -5,6 +5,7 @@ from PIL import Image
 
 from PlatformOperator import PlatformOperator
 from FlakeDetector import FlakeDetector
+from ObjectiveControl import run_vbs_script
 
 import logging
 logger = logging.getLogger(__name__)
@@ -14,6 +15,8 @@ MONITOR_ROI = {"top": 100, "left": 100, "width": 2880, "height": 2048} # Update 
 
 seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
 class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
+
+SWITCH_TO_OBJECTIVE = "VBS_scripts/SwitchToObjective.vbs"
 
 class AutomationProtocol:
     def __init__(self, platformOperator : PlatformOperator = None):
@@ -26,7 +29,8 @@ class AutomationProtocol:
         self.planeCoeffs = ()
         self.flakeDetector = FlakeDetector(seg_dir, class_dir)
 
-    
+    def set_microscope_objective(self, magnification_string):
+        run_vbs_script(SWITCH_TO_OBJECTIVE, "20x")
 
     # --- 3-POINT PLANE FIT LOGIC ---
     def calibrate_plane(self):

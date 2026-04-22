@@ -1,14 +1,14 @@
 import subprocess
 import os
 
-def run_vbs_script(vbs_file, args=None):
+def run_vbs_script(vbs_file, *args):
     if args is None:
         args = []
 
     vbs_file = os.path.abspath(vbs_file)
 
     result = subprocess.run(
-        ["cscript", "//nologo", vbs_file] + args,
+        ["cscript", "//nologo", vbs_file] + list(args),
         capture_output=True,
         text=True
     )
