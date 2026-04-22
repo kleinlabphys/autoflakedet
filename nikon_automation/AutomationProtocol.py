@@ -1,16 +1,24 @@
 import numpy as np
 import cv2
-# import pyautogui
 import mss
 from PIL import Image
 
 from PlatformOperator import PlatformOperator
+from FlakeDetector import FlakeDetector
+from ObjectiveControl import run_vbs_script
+
+# import pyautogui, time
 
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(message)s')
 
-MONITOR_ROI = {"top": 100, "left": 100, "width": 2880, "height": 2048} # Update after dragging window!
+MONITOR_ROI = {"top": 150, "left": 184, "width": 2644, "height": 1880} # Image Dimensions when displayed in full screen at 92%
+
+seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
+class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
+
+SWITCH_TO_OBJECTIVE = "VBS_scripts/SwitchToObjective.vbs"
 
 class AutomationProtocol:
     def __init__(self, platformOperator : PlatformOperator = None):
@@ -21,8 +29,10 @@ class AutomationProtocol:
 
         self.points = []
         self.planeCoeffs = ()
+        self.flakeDetector = FlakeDetector(seg_dir, class_dir)
 
-    
+    def set_microscope_objective(self, magnification_string):
+        run_vbs_script(SWITCH_TO_OBJECTIVE, "20x")
 
     # --- 3-POINT PLANE FIT LOGIC ---
     def calibrate_plane(self):
@@ -69,8 +79,8 @@ class AutomationProtocol:
         (A, B, C) = self.planeCoeffs
         (p1, p2, p3) = self.points
 
-        x_fov_step = 300
-        y_fov_step = 250
+        x_fov_step = 850
+        y_fov_step = 700
 
         x_left = p1[0]
         # conservative bounding with min, and max to pick the smallest region (may result in minor desired cropping)
@@ -80,6 +90,7 @@ class AutomationProtocol:
 
         # start at top-left going right
         x_cur, y_cur, x_dir, y_dir = x_left, y_top, -1, -1
+        img_array, img_bgr = None, None
 
         with mss.mss() as sct:
             while (y_cur <= y_top and y_cur >= y_bottom) or x_dir == -1:
@@ -92,20 +103,24 @@ class AutomationProtocol:
                     
                     # 3. GRAB
                     screenshot = sct.grab(MONITOR_ROI)
-                    img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
 
-                    # img = np.array(screenshot)
-                    # img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-                    
-                    # 4. INFERENCE (Placeholder for MaskTerial)
-                    # is_flake = model.predict(img_bgr)
-                    is_flake = False # Replace with real ML call
+                    # Some helpful code to display information if needed to rescale
+                    # img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+                    # img.show()
+                    # input("Waiting to cycle")
+                    # time.sleep(3)
+                    # x, y = pyautogui.position()
+                    # print(f"Mouse at: ({x}, {y})")
+                    # input("waiting 2")
+
+                    img_array = np.array(screenshot)
+                    img_bgr = cv2.cvtColor(img_array, cv2.COLOR_BGRA2BGR)
+                    is_flake = self.flakeDetector.scan_image_for_flakes(img_bgr) # TODO: make this call parallel
                     
                     if is_flake:
-                        print(f"Flake at {x},{y}!")
-                        # 5. TRIGGER NIKON SAVE
-                        pyautogui.press('f5')
-                        time.sleep(1.0) # Wait for disk write
+                        x_proportion = (x_cur - x_right) / (x_left - x_right)
+                        y_proportion = (y_cur - y_bottom) / (y_top - y_bottom)
+                        logger.info(f"Flake locally at {x_proportion * 100}% of the X bounds, {y_proportion * 100}% of the Y bounds!")
 
                     # increment position
                     x_cur += x_fov_step * x_dir
@@ -117,4 +132,3 @@ class AutomationProtocol:
             
             logger.info(f"Ended search @ {self.platformOperator.get_stage_xyz()}")
 
-            # img.show()
