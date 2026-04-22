@@ -1,16 +1,19 @@
 import numpy as np
 import cv2
-# import pyautogui
 import mss
 from PIL import Image
 
 from PlatformOperator import PlatformOperator
+from FlakeDetector import FlakeDetector
 
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(message)s')
 
 MONITOR_ROI = {"top": 100, "left": 100, "width": 2880, "height": 2048} # Update after dragging window!
+
+seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
+class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
 
 class AutomationProtocol:
     def __init__(self, platformOperator : PlatformOperator = None):
@@ -21,6 +24,7 @@ class AutomationProtocol:
 
         self.points = []
         self.planeCoeffs = ()
+        self.flakeDetector = FlakeDetector(seg_dir, class_dir)
 
     
 
@@ -94,18 +98,12 @@ class AutomationProtocol:
                     screenshot = sct.grab(MONITOR_ROI)
                     img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
 
-                    # img = np.array(screenshot)
-                    # img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-                    
-                    # 4. INFERENCE (Placeholder for MaskTerial)
-                    # is_flake = model.predict(img_bgr)
-                    is_flake = False # Replace with real ML call
+                    img = np.array(screenshot)
+                    img_bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+                    is_flake = self.flakeDetector.scan_image_for_flakes(img_bgr) # TODO: make this call parallel
                     
                     if is_flake:
-                        print(f"Flake at {x},{y}!")
-                        # 5. TRIGGER NIKON SAVE
-                        pyautogui.press('f5')
-                        time.sleep(1.0) # Wait for disk write
+                        logger.info(f"Flake at {x_cur},{y_cur}!")
 
                     # increment position
                     x_cur += x_fov_step * x_dir
