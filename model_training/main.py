@@ -36,6 +36,9 @@ class App:
         self.status_label = tk.Label(root, text="Step 1: Select source directory for copying training images")
         self.status_label.pack(pady=5)
 
+        # Clear inputs
+        self.btn_clear = tk.Button(root, text="Clear Training Inputs", command=self.clear_training_inputs, state='normal')
+
         # Progress bar
         self.progress = ttk.Progressbar(root, length=400, mode='determinate')
         self.progress.pack(pady=5, fill='x', padx=20)
@@ -53,6 +56,7 @@ class App:
         self.btn_train = tk.Button(root, text="Train Model", command=self.train_model, state='disabled')
         self.btn_reset = tk.Button(root, text="Restart Program", command=self.hard_reset, state='normal')
 
+        self.btn_clear.pack(expand=True, pady=5, fill='x', padx=50)
         self.btn_row_1.pack(pady=5, fill='x', padx=50)
         self.btn_skip.pack(side='right', expand=True, pady=5, fill='x', padx=50)
         self.btn_select.pack(side='left', expand=True, pady=5, fill='x', padx=50)
@@ -234,6 +238,7 @@ class App:
             return
 
         self.btn_annotations.config(state='disabled', text="Annotations Confirmed ✓")
+        self.btn_clear.config(state='disabled')
         self.log_message("Annotations confirmed. Converting annotations from each image to a trainable format...")
         for img_ref, prog_status in ptrc.create_bulk_coco_annotations_from_polygon_images(ANNOTATIONS_DIR, os.path.join(RAM_DIR, TRAINABLE_ANNOTATIONS_FILE)):
             if prog_status < 100: self.log_message(f"Transposed annotations of {img_ref}")
@@ -293,7 +298,31 @@ class App:
 
         self.root.destroy()
         subprocess.Popen([sys.executable] + sys.argv)
+    
+    def clear_directory(self, folder_path):
+        self.log_message(f"Clearing files from {folder_path}...")
+        files_to_delete = os.listdir(folder_path)
+        num_files = len(files_to_delete)
+        for i, filename in enumerate(files_to_delete):
+            file_path = os.path.join(folder_path, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                self.log_message(f"Deleted {file_path}...")
+                progress_value = int((i + 1) / num_files * 100)
+                self.progress['value'] = progress_value
 
+    def clear_training_inputs(self):
+        request_result = self.custom_yes_no_cancel("Empty Volatile Storage", "Would you like to clear model inputs for a new training cycle?", yes_text="Clear Images", no_text="Clear Annotations", cancel_text="Clear Both")
+                        
+        if request_result is True:
+            self.clear_directory(LIBRARY_COPY_DIR)
+        elif request_result is False:
+            self.clear_directory(ANNOTATIONS_DIR)
+        elif request_result is None:
+            self.clear_directory(LIBRARY_COPY_DIR)
+            self.clear_directory(ANNOTATIONS_DIR)
+        elif request_result == "closed":
+            return
 
 if __name__ == "__main__":
     root = tk.Tk()
