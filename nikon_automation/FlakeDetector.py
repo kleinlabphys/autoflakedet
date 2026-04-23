@@ -3,6 +3,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from tkinter import filedialog
 
 from pathlib import Path
 
@@ -110,9 +111,15 @@ class FlakeDetector:
         return result
     
 
-# example usage
-# seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
-# class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
-# f = FlakeDetector(seg_dir, class_dir)
-# contains = f.scan_image_for_flakes(cv2.imread(r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\library_to_train_on\NPthinBN2-2-A0018_thinBN_1.jpg"), display_success_option=True)
-# print(contains)
+# example usage for testing on samples
+if __name__ == "__main__":
+    seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
+    class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
+    f = FlakeDetector(seg_dir, class_dir)
+    image_to_examine = "some_image"
+    print("Keep selecting images for flake detection. Select cancel when finished")
+    while image_to_examine:
+        image_to_examine = filedialog.askopenfilename(title="Select image for flake detection")
+        if image_to_examine:
+            contains = f.scan_image_for_flakes(cv2.imread(image_to_examine), display_success_option=True)
+            print(contains)
