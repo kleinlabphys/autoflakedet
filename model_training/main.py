@@ -20,8 +20,12 @@ DEFAULT_MODEL_DIR = os.path.join(PARENT_DIR, "trained_models")
 ANNOTATIONS_DIR = os.path.join(PARENT_DIR, "manual_label_annotations")
 RAM_DIR = os.path.join(PARENT_DIR, "intermittent_storage")
 TRAINABLE_ANNOTATIONS_FILE = "coco.json"
+COCO_FORMAT_ANNOTATIONS = os.path.join(RAM_DIR, TRAINABLE_ANNOTATIONS_FILE)
 
 AMM_CLASSIFIER_CONFIG = os.path.join(PARENT_DIR, "pipeline_gui_application", "train_AMM_classifier_config.json")
+FINETUNE_SEGMENTATION_CONFIG = os.path.join(PARENT_DIR, "pipeline_gui_application", "segmentation_config.yaml")
+FINETUNE_SEGMENTATION_SCRIPT = os.path.join(PARENT_DIR, "pipeline_gui_application", "finetune_segmentation_model.py")
+DEFAULT_SEGMENTATION_WEIGHTS = os.path.join(PARENT_DIR, "trained_models", "weights_input", "model_final.pth")
 
 class App:
     def __init__(self, root):
@@ -30,7 +34,7 @@ class App:
         self.root.title("Classification Pipeline")
 
         self.source_dir = None
-        self.model_dir = DEFAULT_MODEL_DIR
+        self.classifier_dir = self.segmentation_dir = DEFAULT_MODEL_DIR
 
         # Status label
         self.status_label = tk.Label(root, text="Step 1: Select source directory for copying training images")
@@ -52,8 +56,12 @@ class App:
         self.btn_select = tk.Button(self.btn_row_1, text="Select Source Directory", command=self.select_directory)
         self.btn_skip = tk.Button(self.btn_row_1, text="Skip Source Selection", command=self.skip_source_selection)
         self.btn_annotations = tk.Button(root, text="Confirm Annotations", command=self.ask_annotations, state='disabled')
-        self.btn_model = tk.Button(root, text="Select Model Save Location", command=self.select_model_dir, state='disabled')
-        self.btn_train = tk.Button(root, text="Train Model", command=self.train_model, state='disabled')
+        self.btn_row_model_saves = tk.Frame(self.root)
+        self.btn_save_classification = tk.Button(self.btn_row_model_saves, text="Classifier Model Save Location", command=self.select_classifier_dir, state='disabled')
+        self.btn_save_segmentation = tk.Button(self.btn_row_model_saves, text="Segmentation Model Save Location", command=self.select_segmentation_dir, state='disabled')
+        self.btn_row_2 = tk.Frame(self.root)
+        self.btn_train_segmentation = tk.Button(self.btn_row_2, text="Train Segmentation Model", command=self.train_segmentation, state='disabled')
+        self.btn_train_classifier = tk.Button(self.btn_row_2, text="Train Classifier Model", command=self.train_classifier, state='disabled')
         self.btn_reset = tk.Button(root, text="Restart Program", command=self.hard_reset, state='normal')
 
         self.btn_clear.pack(expand=True, pady=5, fill='x', padx=50)
@@ -61,8 +69,12 @@ class App:
         self.btn_skip.pack(side='right', expand=True, pady=5, fill='x', padx=50)
         self.btn_select.pack(side='left', expand=True, pady=5, fill='x', padx=50)
         self.btn_annotations.pack(pady=5, fill='x', padx=50)
-        self.btn_model.pack(pady=5, fill='x', padx=50)
-        self.btn_train.pack(pady=5, fill='x', padx=50)
+        self.btn_row_model_saves.pack(pady=5, fill='x', padx=50)
+        self.btn_save_classification.pack(side='left', expand=True, pady=5, fill='x', padx=50)
+        self.btn_save_segmentation.pack(side='right', expand=True, pady=5, fill='x', padx=50)
+        self.btn_row_2.pack(pady=5, fill='x', padx=50)
+        self.btn_train_classifier.pack(side='left', expand=True, pady=5, fill='x', padx=50)
+        self.btn_train_segmentation.pack(side='right', expand=True, pady=5, fill='x', padx=50)
         self.btn_reset.pack(pady=10, fill='x', padx=50)
 
         self.root.update_idletasks()
@@ -240,46 +252,96 @@ class App:
         self.btn_annotations.config(state='disabled', text="Annotations Confirmed ✓")
         self.btn_clear.config(state='disabled')
         self.log_message("Annotations confirmed. Converting annotations from each image to a trainable format...")
-        for img_ref, prog_status in ptrc.create_bulk_coco_annotations_from_polygon_images(ANNOTATIONS_DIR, os.path.join(RAM_DIR, TRAINABLE_ANNOTATIONS_FILE)):
+        for img_ref, prog_status in ptrc.create_bulk_coco_annotations_from_polygon_images(ANNOTATIONS_DIR, COCO_FORMAT_ANNOTATIONS):
             if prog_status < 100: self.log_message(f"Transposed annotations of {img_ref}")
             self.progress['value'] = prog_status
         self.log_message("Formatting complete.")
         self.status_label.config(text="Step 3: Select model save location")
-        self.btn_model.config(state='normal')
+        self.btn_save_classification.config(state='normal')
+        self.btn_save_segmentation.config(state='normal')
 
     def launch_labelme(self):
         subprocess.Popen([sys.executable, "-m", "labelme"])
         self.root.destroy()
 
-    def select_model_dir(self):
-        use_default = messagebox.askyesno("Model Location", "Use default model directory?")
+    def select_classifier_dir(self):
+        use_default = messagebox.askyesno("Classifier Model Save Location", "Use default model directory?")
 
         if use_default:
-            self.model_dir = DEFAULT_MODEL_DIR
+            self.classifier_dir = DEFAULT_MODEL_DIR
         else:
-            chosen = filedialog.askdirectory(title="Select Model Directory")
+            chosen = filedialog.askdirectory(title="Select Classification Model Directory")
             if chosen:
-                self.model_dir = chosen
+                self.classifier_dir = chosen
 
-        self.log_message(f"Model directory: {self.model_dir}")
-        self.status_label.config(text="Ready to train model")
-        self.btn_model.config(state='disabled')
-        self.btn_train.config(state='normal')
+        self.log_message(f"Classifier directory: {self.classifier_dir}")
+        self.status_label.config(text="Ready to train classifier model")
+        self.btn_save_classification.config(state='disabled')
+        self.btn_train_classifier.config(state='normal')
 
-    def train_model(self):
-        self.status_label.config(text="Training model...")
-        self.btn_train.config(state='disabled')
+    def select_segmentation_dir(self):
+        use_default = messagebox.askyesno("Segmentation Model Save Location", "Use default model directory?")
 
-        threading.Thread(target=self._train_model_thread, daemon=True).start()
+        if use_default:
+            self.segmentation_dir = DEFAULT_MODEL_DIR
+        else:
+            chosen = filedialog.askdirectory(title="Select Segmentation Model Directory")
+            if chosen:
+                self.segmentation_dir = chosen
 
-    def _train_model_thread(self):
-        if not os.path.exists(self.model_dir):
-            os.makedirs(self.model_dir)
+        self.log_message(f"Segmentation Model save directory: {self.segmentation_dir}")
+
+        use_default = messagebox.askyesno("Segmentation Input Weights Location", "Use default input weights directory?")
+
+        if use_default:
+            self.input_segmentation_weights = DEFAULT_SEGMENTATION_WEIGHTS
+        else:
+            chosen = filedialog.askdirectory(title="Select Segmentation Input Weights Directory")
+            if chosen:
+                self.input_segmentation_weights = os.path.join(chosen, "model_final.pth")
+        self.log_message(f"Segmentation input weights will be loaded from: {self.input_segmentation_weights}")
+        
+        self.status_label.config(text="Ready to finetune the input segmentation model weights")
+        self.btn_save_segmentation.config(state='disabled')
+        self.btn_train_segmentation.config(state='normal')
+
+    def train_segmentation(self):
+        self.status_label.config(text="Finetuning segmentation model...")
+        self.btn_train_segmentation.config(state='disabled')
+
+        threading.Thread(target=self._finetune_segmentation_thread, args=(self.input_segmentation_weights, self.segmentation_dir), daemon=True).start()
+
+    def _finetune_segmentation_thread(self, weights_path, output_dir):
+        cmd = [
+            "python.exe",
+            FINETUNE_SEGMENTATION_SCRIPT,
+            "--config", FINETUNE_SEGMENTATION_CONFIG,
+            "--train-image-root", LIBRARY_COPY_DIR,
+            "--train-annotation-path", COCO_FORMAT_ANNOTATIONS,
+            "MODEL.WEIGHTS", weights_path,
+            "OUTPUT_DIR", output_dir
+        ]
+        
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Training process failed: {e}")
+
+
+    def train_classifier(self):
+        self.status_label.config(text="Training classifier model...")
+        self.btn_train_classifier.config(state='disabled')
+
+        threading.Thread(target=self._train_classifier_thread, daemon=True).start()
+
+    def _train_classifier_thread(self):
+        if not os.path.exists(self.classifier_dir):
+            os.makedirs(self.classifier_dir)
 
         self.log_message("Loading images and applying various settings before classifier training begins...")
         for training_log_entry, progress_value in trammc.train_amm_classifier_model(AMM_CLASSIFIER_CONFIG, LIBRARY_COPY_DIR,
-                                        os.path.join(RAM_DIR, TRAINABLE_ANNOTATIONS_FILE), 
-                                        self.model_dir):
+                                        COCO_FORMAT_ANNOTATIONS, 
+                                        self.classifier_dir):
             self.progress['value'] = progress_value
             self.log_message(training_log_entry)
 
