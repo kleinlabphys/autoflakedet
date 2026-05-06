@@ -21,9 +21,12 @@ SIZE_THRESHOLD = 200
 from maskterial import MaskTerial, load_models
 from maskterial.structures import Flake
 
-def display_results(
+def display_or_save_results(
     image: np.ndarray,
     flakes: list[Flake],
+    display_flag: bool = False,
+    save_location: str | None = None,
+    name_of_image = "default.jpg",
     colors: list[tuple[int, int, int]] = [
         (255, 0, 0),
         (0, 0, 255),
@@ -74,7 +77,10 @@ def display_results(
     fig, axis = plt.subplots(1, 1, figsize=(12, 12), dpi=100)
     plt.imshow(image[:, :, ::-1])
     plt.axis("off")
-    plt.show()
+    if display_flag:
+        plt.show()
+    if save_location:
+        plt.savefig(rf"C:\Users\2DFab\Documents\Software\autoflakedet\{save_location}\{name_of_image}")
 
 class FlakeDetector:
     def __init__(self, segmentation_model_dir, classifier_model_dir, score_threshold=0.1, min_class_occupancy=0.5, size_threshold=200):
@@ -101,12 +107,12 @@ class FlakeDetector:
             device=self.device,
         )
 
-    def scan_image_for_flakes(self, image_bytes : np.ndarray, display_success_option=False):
+    def scan_image_for_flakes(self, image_bytes : np.ndarray, display_success_option=False, save_location=None, name_of_image="default.jpg"):
         flakes = self.predictor.predict(image_bytes)
 
         result = len(flakes) > 0
-        if display_success_option and result:
-            display_results(image_bytes, flakes)
+        if (display_success_option or save_location) and result:
+            display_or_save_results(image_bytes, flakes, display_success_option, save_location, name_of_image=name_of_image)
 
         return result
     
@@ -116,10 +122,24 @@ if __name__ == "__main__":
     seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
     class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
     f = FlakeDetector(seg_dir, class_dir)
-    image_to_examine = "some_image"
-    print("Keep selecting images for flake detection. Select cancel when finished")
-    while image_to_examine:
-        image_to_examine = filedialog.askopenfilename(title="Select image for flake detection")
-        if image_to_examine:
-            contains = f.scan_image_for_flakes(cv2.imread(image_to_examine), display_success_option=True)
-            print(contains)
+    inference_library = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\inference_library"
+
+    image_names = [
+        file for file in os.listdir(inference_library) if file.endswith((".jpg", ".png", ".jpeg", ".tif"))
+    ]
+
+    identified = 0
+    for index, image_name in enumerate(image_names):
+        print(f"Processing {image_name} ({index + 1}/{len(image_names)})")
+        image_path = os.path.join(inference_library, image_name)
+        contains = f.scan_image_for_flakes(cv2.imread(image_path), display_success_option=False, save_location=r"model_training\inference_library\inference_results_11_class", name_of_image=image_name)
+        if contains: identified += 1
+        print(contains)
+        # print("Keep selecting images for flake detection. Select cancel when finished")
+        # while image_to_examine:
+        #     image_to_examine = filedialog.askopenfilename(title="Select image for flake detection")
+        #     if image_to_examine:
+        #         contains = f.scan_image_for_flakes(cv2.imread(image_to_examine), display_success_option=True)
+        #         print(contains)
+
+    print(f"Naive Recall: {(identified / len(image_names) * 100)}%")

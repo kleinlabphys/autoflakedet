@@ -39,44 +39,6 @@
       "shape_type": "polygon",
       "flags": {},
       "mask": null
-    },
-    {
-      "label": "1",
-      "points": [
-        [
-          1259.6,
-          839.6
-        ],
-        [
-          1297.6,
-          833.6
-        ],
-        [
-          1304.4,
-          841.6
-        ],
-        [
-          1314.4,
-          840.4
-        ],
-        [
-          1326.4,
-          849.6
-        ],
-        [
-          1310.4,
-          847.6
-        ],
-        [
-          1312.4,
-          851.6
-        ]
-      ],
-      "group_id": null,
-      "description": "",
-      "shape_type": "polygon",
-      "flags": {},
-      "mask": null
     }
   ],
   "imagePath": "..\\..\\..\\..\\..\\..\\..\\Box\\2D Fab\\Training Data\\ThinBN_20x_400ms\\SD_thinBN_FlakeBottomCenterAndFlakeUpperLeft_20x_400ms.jpg",
