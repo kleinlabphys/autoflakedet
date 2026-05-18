@@ -22,8 +22,9 @@ def main():
 
     # Run automation
     automator.set_microscope_objective("20x")
-    automator.calibrate_plane()
-    automator.run_scan()
+    automator.calibrate_planes()
+    automator.run_scans()
+    automator.show_detections()
 
     # Shutdown
     automator.platformOperator.disconnect_and_close_session(COM_PORT)

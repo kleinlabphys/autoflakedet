@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from tkinter import filedialog
 
+from typing import List, Tuple
 from pathlib import Path
 
 SEG_MODEL = "M2F"
@@ -111,9 +112,66 @@ class FlakeDetector:
         return result
     
 
+## Some utilities for flake detection data saving ##
+def save_detection_data(
+    filename: str,
+    A: List[List[Tuple[float, float]]],
+    B: List[Tuple[float, float]]
+) -> None:
+    """
+    Writes A and B to a text file.
+
+    Format:
+    - One line per pair (A[i], B[i])
+    - A[i] encoded as x1,y1;x2,y2;...
+    - B[i] encoded as j,k
+    - Separated by |
+
+    Example line:
+    1.0,2.0;3.0,4.0|5.0,6.0
+    """
+    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+    with open(filename, "w") as f:
+        for a_list, (j, k) in zip(A, B):
+            a_str = ";".join(f"{x},{y}" for x, y in a_list)
+            b_str = f"{j},{k}"
+            f.write(f"{a_str}|{b_str}\n")
+
+
+def load_detection_data(
+    filename: str
+) -> Tuple[List[List[Tuple[float, float]]], List[Tuple[float, float]]]:
+    """
+    Reads the file created by save_detection_data() and reconstructs A and B.
+    """
+    A = []
+    B = []
+
+    with open(filename, "r") as f:
+        for line in f:
+            line = line.strip()
+
+            a_part, b_part = line.split("|")
+
+            # Decode A[i]
+            a_list = []
+            if a_part:
+                for pair_str in a_part.split(";"):
+                    x_str, y_str = pair_str.split(",")
+                    a_list.append((float(x_str), float(y_str)))
+
+            # Decode B[i]
+            j_str, k_str = b_part.split(",")
+            b_tuple = (float(j_str), float(k_str))
+
+            A.append(a_list)
+            B.append(b_tuple)
+
+    return A, B
+
 # example usage for testing on samples
 if __name__ == "__main__":
-    seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
+    seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation"
     class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
     f = FlakeDetector(seg_dir, class_dir)
     image_to_examine = "some_image"
