@@ -22,8 +22,8 @@ logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(mes
 
 MONITOR_ROI = {"top": 150, "left": 184, "width": 2644, "height": 1880} # Image Dimensions when displayed in full screen at 92%
 
-seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
-class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
+seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\thinhbn_150ms_segmenter"
+class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_150ms_classifier"
 
 PARENT_DIR = Path(__file__).resolve().parent
 SWITCH_TO_OBJECTIVE = os.path.join(PARENT_DIR, "VBS_scripts/SwitchToObjective.vbs")
@@ -37,7 +37,7 @@ class AutomationProtocol:
 
         self.chipsPoints = []
         self.chipsPlaneCoeffs = []
-        self.flakeDetector = FlakeDetector(seg_dir, class_dir)
+        self.flakeDetector = FlakeDetector(seg_dir, class_dir, size_threshold=1000)
         self.chipsDetectedSpots = []
         self.chipsDimensions = []
 
@@ -103,8 +103,11 @@ class AutomationProtocol:
     
     def show_detections(self):
         start_folder = os.path.join(PARENT_DIR, "flakeDetections")
+        logger.info("Load a previous run or the current run of saved detections.")
         root = tk.Tk()
-        root.withdraw()  # hide main window
+        root.withdraw()
+        root.update()
+        root.attributes('-topmost', True)
 
         file_path = filedialog.askopenfilename(
             initialdir=start_folder,
