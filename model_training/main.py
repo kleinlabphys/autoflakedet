@@ -226,6 +226,27 @@ class App:
         self.status_label.config(text="Step 2: Confirm annotations")
         self.btn_annotations.config(state='normal')
 
+    def clean_balance_inputs(self):
+        '''Makes sure each input image maps 1-to-1 with an input annotation.
+        All outliers without a match are deleted from the volatile storage.'''
+        image_dir = Path(LIBRARY_COPY_DIR)
+        json_dir = Path(ANNOTATIONS_DIR)
+
+        image_stems = {p.stem for p in image_dir.iterdir()}
+        json_stems = {p.stem for p in json_dir.iterdir()}
+        
+        # Delete images without matching json
+        for p in image_dir.iterdir():
+            if p.stem not in json_stems:
+                p.unlink()
+                self.log_message(f"{p} did not have a matching annotation and was deleted/ignored.")
+
+        # Delete jsons without matching image
+        for p in json_dir.iterdir():
+            if p.stem not in image_stems:
+                p.unlink()
+                self.log_message(f"{p} did not have a match image and was deleted/ignored.")
+
     def ask_annotations(self):
         result = self.custom_yes_no_cancel("Annotations", "Have annotations been supplied?", yes_text="Already supplied", no_text="Import Annotations", cancel_text="Launch Labelme")
 
@@ -248,6 +269,8 @@ class App:
                 )
         elif result == "closed":
             return
+        
+        self.clean_balance_inputs()
 
         self.btn_annotations.config(state='disabled', text="Annotations Confirmed ✓")
         self.btn_clear.config(state='disabled')
