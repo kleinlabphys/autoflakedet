@@ -77,14 +77,14 @@ def display_results(
     plt.show()
 
 class FlakeDetector:
-    def __init__(self, segmentation_model_dir, classifier_model_dir, score_threshold=0.1, min_class_occupancy=0.5, size_threshold=200):
+    def __init__(self, segmentation_model_dir, classifier_model_dir, score_threshold=0.5, min_class_occupancy=0.5, size_threshold=1000):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         segmentation_model, classification_model, postprocessing_model = load_models(
-            seg_model_type=SEG_MODEL,
+            seg_model_type=SEG_MODEL if segmentation_model_dir else None,
             seg_model_root=segmentation_model_dir,
-            cls_model_type=CLS_MODEL,
+            cls_model_type=CLS_MODEL if classifier_model_dir else None,
             cls_model_root=classifier_model_dir,
             pp_model_type=PP_MODEL,
             pp_model_root=PP_MODEL_ROOT,
@@ -114,7 +114,8 @@ class FlakeDetector:
 # example usage for testing on samples
 if __name__ == "__main__":
     seg_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\segmentation\baseline_thinHbn_segmenter"
-    class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_11_images_classifier"
+    seg_dir = ""
+    class_dir = r"C:\Users\2DFab\Documents\Software\autoflakedet\model_training\trained_models\classifiers\thin_hBN_150ms_classifier"
     f = FlakeDetector(seg_dir, class_dir)
     image_to_examine = "some_image"
     print("Keep selecting images for flake detection. Select cancel when finished")
